@@ -7,7 +7,4 @@ This Python script uses BeautifulSoup, pandas, and regex to web scrape Billboard
 
 ## Usage
 
-Run the script:
-
-```bash
-python billboard_analysis.py
+Run the script to explore insights into the most popular artists and their performance trends in the Billboard Top 100.
