@@ -4,7 +4,3 @@ This Python script uses BeautifulSoup, pandas, regex, and matplotlib to web scra
 
 - **Top Artists (2010-2020):** Bar graph showcasing the 10 most popular artists.
 - **Artist Performance Over Time:** Line graph illustrating how artists performed in the Billboard Top 100 over the years.
-
-## Usage
-
-Run the script to explore insights into the most popular artists and their performance trends in the Billboard Top 100.
