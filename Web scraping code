@@ -89,7 +89,7 @@ plt.figure(figsize=(10, 6))
 plt.bar(top_10_artists, [artist_count[artist] for artist in top_10_artists], color='blue')
 plt.xlabel('Artist')
 plt.ylabel('Number of Appearances')
-plt.title('Top 10 Artists in Billboard Hot 100 (2010-2020)')
+plt.title('Top 10 Artists in Billboard Hot 100 (2010-2020), Excluding Featured Songs')
 plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
 
@@ -115,22 +115,17 @@ for artist in top_5_artists_line_graph:
 
 plt.xlabel('Year')
 plt.ylabel('Number of Appearances')
-plt.title('Artist Appearances on the Billboard Top 100 Throughout the Years')
+plt.title("Evolution of Artist Appearances on the Billboard Top 100 Over the Years (Excluding Featured Songs)")
+
 plt.legend()
 plt.grid(True)
 plt.show()
 
 # Print the top 10 artists and their count
-print("\nTop 10 Artists (Total Count for 2010-2020):")
+print("\nTop 10 Artists (Billboard Top 100, Excluding Featured Songs, 2010-2020):")
+
 for artist, count in sorted_artists[:10]:
     print(f"{artist}: {count} times")
-
-# Print the total number of songs for each year
-for year in range(2020, 2009, -1):
-    if year in all_songs_data:
-        print(f"\nYear {year} - Total Number of Songs: {len(all_songs_data[year])}")
-    else:
-        print(f"\nYear {year} - Total Number of Songs: 0")
 
 # Function to scrape the title and artist for a given year
 def scrape_data(year):
@@ -155,3 +150,4 @@ def scrape_data(year):
 for year in range(2020, 2009, -1):
     data = scrape_data(year)
     print(f"{data['Year']} - Title: {data['Title']}, Artist: {data['Artist']}")
+
