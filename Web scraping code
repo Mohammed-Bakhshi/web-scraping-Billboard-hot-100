@@ -1,21 +1,31 @@
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+from datetime import datetime, timedelta
+from collections import Counter
 import matplotlib.pyplot as plt
-import re
+from wordcloud import WordCloud
+from nltk.corpus import stopwords
+import nltk
+nltk.download('stopwords')
 
 # List of column names for the DataFrame
-columns = ["Title", "Artists", "GraphClass", "FirstSongLink"]
+columns = ["Title", "Artist", "Date", "Unique Artist"]
 
-# Dictionary to store DataFrames for each year
-all_songs_data = {}
+# Define the initial URL for the desired webpage
+base_url = 'https://www.billboard.com/charts/hot-100/'
+current_date = datetime(2023, 12, 2)  # Start date
 
-# Dictionary to store the count of artists
-artist_count = {}
+# Initialize an empty list to store all data
+all_data = []
+all_artists_count = {}  # To keep track of artist appearances throughout the weeks
+unique_artists_per_year = {}  # To keep track of unique artists each year
 
-# Loop through the years from 2020 to 2010
-for year in range(2020, 2009, -1):
-    url = f'https://www.billboard.com/charts/year-end/{year}/hot-100-songs/'
+# Loop through each week starting from the current date until 1955-07-09
+while current_date >= datetime(1970, 1, 7):
+    # Format the date to match the URL pattern
+    formatted_date = current_date.strftime('%Y-%m-%d')
+    url = f'{base_url}{formatted_date}/'
 
     # Make a request to the URL and get the HTML content
     response = requests.get(url)
@@ -24,130 +34,140 @@ for year in range(2020, 2009, -1):
     # Find all rows in the list
     rows = soup.find_all('li', class_='o-chart-results-list__item')
 
+    # Dictionary to store the count of artists for the current week
+    artist_count = {}
+
     # Loop through each row and extract the title and artists
-    songs_data = []
     for i, row in enumerate(rows, start=1):  # Start index from 1
-        # Extracting the song title
-        title_element = row.find('h3', class_='c-title a-font-primary-bold-s u-letter-spacing-0021 lrv-u-font-size-18@tablet lrv-u-font-size-16 u-line-height-125 u-line-height-normal@mobile-max')
+        # Extracting the song title (check for the second set of class names)
+        title_element = row.find('h3', class_='c-title a-no-trucate a-font-primary-bold-s u-letter-spacing-0021 lrv-u-font-size-18@tablet lrv-u-font-size-16 u-line-height-125 u-line-height-normal@mobile-max a-truncate-ellipsis u-max-width-330 u-max-width-230@tablet-only')
         title = title_element.get_text(strip=True) if title_element else "N/A"
 
-        # Extracting the main artist
-        main_artist_element = row.find('span', class_='c-label a-font-primary-s lrv-u-font-size-14@mobile-max u-line-height-normal@mobile-max u-letter-spacing-0021 lrv-u-display-block')
+        # Extracting the main artist (check for the second set of class names)
+        main_artist_element = row.find('span', class_='c-label a-no-trucate a-font-primary-s lrv-u-font-size-14@mobile-max u-line-height-normal@mobile-max u-letter-spacing-0021 lrv-u-display-block a-truncate-ellipsis-2line u-max-width-330 u-max-width-230@tablet-only')
         main_artist = main_artist_element.get_text(strip=True) if main_artist_element else "N/A"
 
-        # Extracting the featured artist(s)
-        featured_artists_element = row.find('span', class_='c-subheadline a-font-secondary-s u-line-height-125 lrv-u-font-size-14@tablet lrv-u-font-size-12 u-line-height-normal@mobile-max u-letter-spacing-0021 lrv-u-display-block')
-        featured_artists = featured_artists_element.get_text(strip=True) if featured_artists_element else ""
+        # Extracting featured artist(s) excluding featured artists
+        featured_artist_element = row.find('span', class_='chart-element-by')
+        featured_artist = featured_artist_element.get_text(strip=True) if featured_artist_element else ""
+        all_artists = main_artist if "Featuring" not in featured_artist else main_artist + ", " + featured_artist
 
-        # Combine main artist and featured artist(s)
-        all_artists = f"{main_artist}, {featured_artists}" if featured_artists else main_artist
+        # Use simplified regex condition
+        if all_artists != 'N/A':
+            # Check if the artist has already appeared in the current week
+            if all_artists not in artist_count:
+                artist_count[all_artists] = 1
+            else:
+                artist_count[all_artists] += 1
 
-        # Extracting the graph class
-        graph_class_element = row.find('h3', class_='c-title a-font-primary-bold-s u-letter-spacing-0021 u-font-size-23@tablet lrv-u-font-size-16 u-line-height-125 u-line-height-normal@mobile-max u-letter-spacing-0028@tablet')
-        graph_class = graph_class_element.get_text(strip=True) if graph_class_element else "N/A"
+            # Append data to the list for the current week
+            all_data.append([title, all_artists, current_date, ""])
 
-        # Extracting the link to the first song on Billboard Top 100
-        first_song_link_element = row.find('a', class_='c-button a-button--transparent')
-        first_song_link = first_song_link_element.get('href') if first_song_link_element else ""
+    # Update the unique artists count for the current year
+    unique_artists_per_year[current_date.year] = len(artist_count)
 
-        # Use regex to exclude rows with 'N/A' artists
-        if not pd.notna(re.match(r'^N/A$', all_artists)):
-            # Store the data for the current song in a list
-            song_data = [title, all_artists, graph_class, first_song_link]
-            songs_data.append(song_data)
+    # Update the overall artist count
+    for artist, count in artist_count.items():
+        if artist not in all_artists_count:
+            all_artists_count[artist] = count
+        else:
+            all_artists_count[artist] += count
 
-            # Update the artist count
-            for artist in all_artists.split(', '):
-                artist_count[artist] = artist_count.get(artist, 0) + 1
+    # Move to the previous week
+    current_date -= timedelta(days=7)
 
-            # If it's the first song, add it to the graph and tables
-            if i == 1:
-                # Add the first song data to the graph and tables
-                plt.bar([f"{year} - {title}"], [1], color='red')
-                plt.xticks(rotation=45, ha='right')
-                plt.tight_layout()
+    # Check if the loop should break
+    if current_date.year <= 1969:
+        break
 
-                print(f"\nYear {year} - Title: {title}, Artist: {all_artists}")
+# Create the final DataFrame after the loop
+final_dataframe = pd.DataFrame(all_data, columns=columns)
 
-    # Create a pandas DataFrame from the data list and column names
-    df = pd.DataFrame(songs_data, columns=columns)
+# Update the "Unique Artist" column with the count of unique artists for each week
+final_dataframe["Unique Artist"] = final_dataframe["Date"].dt.year
 
-    # Set the index starting from 1
-    df.index = range(1, len(df) + 1)
+# Display the final DataFrame without the index
+print(final_dataframe.to_string(index=False))
 
-    # Store the DataFrame for the current year in the dictionary
-    all_songs_data[year] = df
+# Count the occurrences of each unique song title
+song_counts = final_dataframe['Title'].value_counts()
 
-# Sort the artists by count in descending order
-sorted_artists = sorted(artist_count.items(), key=lambda x: x[1], reverse=True)
+# Get the top 30 most played songs
+top_songs_count = song_counts.nlargest(30)
 
-# Extract the top 10 artists
-top_10_artists = [artist for artist, count in sorted_artists[:10]]
-
-# Create a bar plot for the top 10 artists
-plt.figure(figsize=(10, 6))
-plt.bar(top_10_artists, [artist_count[artist] for artist in top_10_artists], color='blue')
-plt.xlabel('Artist')
+# Create a bar chart for the 30 most played songs
+plt.figure(figsize=(15, 8))
+top_songs_count.plot(kind='bar', color='#008080')
+plt.title('Top 30 Most Played Songs')
+plt.xlabel('Song Title')
 plt.ylabel('Number of Appearances')
-plt.title('Top 10 Artists in Billboard Hot 100 (2010-2020), Excluding Featured Songs')
 plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
+plt.show()
 
-# Create a DataFrame to store the count of appearances for each artist over the years
-artists_over_years = pd.DataFrame(index=range(2010, 2021), columns=top_10_artists)
+# Create a line graph for the number of unique artists each year
+unique_artists_per_year_items = sorted(unique_artists_per_year.items())
+years, unique_artist_counts = zip(*unique_artists_per_year_items)
 
-# Loop through the years from 2020 to 2010
-for year in range(2020, 2009, -1):
-    if year in all_songs_data:
-        for artist in top_10_artists:
-            # Count the number of appearances for each artist in the current year
-            appearances_count = all_songs_data[year]['Artists'].str.contains(artist).sum()
-            artists_over_years.loc[year, artist] = appearances_count
-
-# Extract the top 5 artists for the line graph
-top_5_artists_line_graph = [artist for artist, count in sorted_artists[:5]]
+plt.figure(figsize=(15, 8))
+plt.plot(years, unique_artist_counts, marker='o', linestyle='-', color='#FF6347')
+plt.xlabel('Year')
+plt.ylabel('Number of Unique Artists')
+plt.title('Number of Unique Artists on Billboard Hot 100 Each Year')
+plt.grid(True)
+plt.tight_layout()
+plt.show()
 
 # Create a line graph for the top 5 artists over the years
-plt.figure(figsize=(12, 8))
+top_artists_count = sorted(all_artists_count.items(), key=lambda x: x[1], reverse=True)[:5]
+top_artists, _ = zip(*top_artists_count)
 
-for artist in top_5_artists_line_graph:
-    plt.plot(artists_over_years.index, artists_over_years[artist], label=artist)
+plt.figure(figsize=(15, 8))
+
+for artist in top_artists:
+    artist_data = final_dataframe[final_dataframe['Artist'] == artist]
+    artist_appearances = artist_data.groupby(artist_data['Date'].dt.year).size().reset_index(name='Appearances')
+    plt.plot(artist_appearances['Date'], artist_appearances['Appearances'], label=artist)
 
 plt.xlabel('Year')
 plt.ylabel('Number of Appearances')
-plt.title("Evolution of Artist Appearances on the Billboard Top 100 Over the Years (Excluding Featured Songs)")
-
+plt.title("Evolution of Artist Appearances on the Billboard Hot 100 Over the Years (Top 5 Artists)")
 plt.legend()
 plt.grid(True)
+plt.tight_layout()
 plt.show()
 
-# Print the top 10 artists and their count
-print("\nTop 10 Artists (Billboard Top 100, Excluding Featured Songs, 2010-2020):")
+# Extracting words from song titles and removing stop words
+stop_words = set(stopwords.words('english'))
+all_words = ' '.join(final_dataframe['Title']).lower().split()
+filtered_words = [word for word in all_words if word not in stop_words]
 
-for artist, count in sorted_artists[:10]:
-    print(f"{artist}: {count} times")
+# Count the occurrences of each word
+word_counts = Counter(filtered_words)
 
-# Function to scrape the title and artist for a given year
-def scrape_data(year):
-    url = f"https://www.billboard.com/charts/year-end/{year}/hot-100-songs/"
-    response = requests.get(url)
+# Get the 30 most common words
+top_words = dict(word_counts.most_common(100))
 
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.content, "html.parser")
-        title_element = soup.find("h3", {"id": "title-of-a-story", "class": "c-title"})
-        artist_element = soup.find("span", {"class": "c-label a-font-primary-s lrv-u-font-size-14@mobile-max u-line-height-normal@mobile-max u-letter-spacing-0021 lrv-u-display-block u-font-size-20@tablet"})
+# Create a word cloud for the most common words in song titles
+wordcloud = WordCloud(width=800, height=400, background_color='white').generate_from_frequencies(top_words)
 
-        title = title_element.get_text(strip=True) if title_element else "Title not found"
-        artist = artist_element.get_text(strip=True) if artist_element else "Artist not found"
+# Display the word cloud
+plt.figure(figsize=(15, 8))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.title('Word Cloud - Top 100 Most Common Words in Song Titles (Excluding Stop Words)')
+plt.axis('off')  # Turn off axis labels
+plt.show()
 
-        return {"Year": year, "Title": title, "Artist": artist}
+# Create a bar chart for the top artists overall
+top_artists_count = sorted(all_artists_count.items(), key=lambda x: x[1], reverse=True)[:30]
+top_artists, counts = zip(*top_artists_count)
 
-    else:
-        print(f"Failed to retrieve data for {year}. Status code:", response.status_code)
-        return {"Year": year, "Title": "Data not found", "Artist": "Data not found"}
-
-# Loop through the years from 2020 to 2009
-for year in range(2020, 2009, -1):
-    data = scrape_data(year)
-    print(f"{data['Year']} - Title: {data['Title']}, Artist: {data['Artist']}")
+plt.figure(figsize=(15, 8))
+plt.bar(top_artists, counts, color='#1338BE')
+plt.title('Top 30 Artists Overall')
+plt.xlabel('Artist')
+plt.ylabel('Number of Appearances')
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
+plt.show()
 
