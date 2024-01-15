@@ -7,84 +7,66 @@ import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 from nltk.corpus import stopwords
 import nltk
-nltk.download('stopwords')
 
-# List of column names for the DataFrame
-columns = ["Title", "Artist", "Date", "Unique Artist"]
 
-# Define the initial URL for the desired webpage
-base_url = 'https://www.billboard.com/charts/hot-100/'
-current_date = datetime(2023, 12, 2)  # Start date
+# Constants
+BASE_URL = 'https://www.billboard.com/charts/hot-100/'
+START_DATE = datetime(2024, 1, 1)  # Start date
+END_DATE = datetime(1970, 1, 1)
+COLUMNS = ["Title", "Artist", "Date", "Unique Artist"]
 
-# Initialize an empty list to store all data
+# Initialize data storage
 all_data = []
-all_artists_count = {}  # To keep track of artist appearances throughout the weeks
-unique_artists_per_year = {}  # To keep track of unique artists each year
+all_artists_count = {}
+unique_artists_per_year = {}
 
 # Loop through each week starting from the current date until 1955-07-09
-while current_date >= datetime(1970, 1, 7):
-    # Format the date to match the URL pattern
+current_date = START_DATE
+while current_date >= END_DATE:
     formatted_date = current_date.strftime('%Y-%m-%d')
-    url = f'{base_url}{formatted_date}/'
+    url = f'{BASE_URL}{formatted_date}/'
 
     # Make a request to the URL and get the HTML content
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
 
     # Find all rows in the list
-    rows = soup.find_all('li', class_='o-chart-results-list__item')
+    chart_items = soup.find_all('li', class_='o-chart-results-list__item')
 
-    # Dictionary to store the count of artists for the current week
+     # Dictionary to store the count of artists for the current week
     artist_count = {}
 
-    # Loop through each row and extract the title and artists
-    for i, row in enumerate(rows, start=1):  # Start index from 1
-        # Extracting the song title (check for the second set of class names)
-        title_element = row.find('h3', class_='c-title a-no-trucate a-font-primary-bold-s u-letter-spacing-0021 lrv-u-font-size-18@tablet lrv-u-font-size-16 u-line-height-125 u-line-height-normal@mobile-max a-truncate-ellipsis u-max-width-330 u-max-width-230@tablet-only')
+    for i, chart_item in enumerate(chart_items, start=1):
+        title_element = chart_item.find('h3', class_='c-title a-no-trucate a-font-primary-bold-s u-letter-spacing-0021 lrv-u-font-size-18@tablet lrv-u-font-size-16 u-line-height-125 u-line-height-normal@mobile-max a-truncate-ellipsis u-max-width-330 u-max-width-230@tablet-only')
         title = title_element.get_text(strip=True) if title_element else "N/A"
 
-        # Extracting the main artist (check for the second set of class names)
-        main_artist_element = row.find('span', class_='c-label a-no-trucate a-font-primary-s lrv-u-font-size-14@mobile-max u-line-height-normal@mobile-max u-letter-spacing-0021 lrv-u-display-block a-truncate-ellipsis-2line u-max-width-330 u-max-width-230@tablet-only')
+        main_artist_element = chart_item.find('span', class_='c-label a-no-trucate a-font-primary-s lrv-u-font-size-14@mobile-max u-line-height-normal@mobile-max u-letter-spacing-0021 lrv-u-display-block a-truncate-ellipsis-2line u-max-width-330 u-max-width-230@tablet-only')
         main_artist = main_artist_element.get_text(strip=True) if main_artist_element else "N/A"
 
-        # Extracting featured artist(s) excluding featured artists
-        featured_artist_element = row.find('span', class_='chart-element-by')
+        featured_artist_element = chart_item.find('span', class_='chart-element-by')
         featured_artist = featured_artist_element.get_text(strip=True) if featured_artist_element else ""
-        all_artists = main_artist if "Featuring" not in featured_artist else main_artist + ", " + featured_artist
+        all_artists = main_artist if "Featuring" not in featured_artist else f"{main_artist}, {featured_artist}"
 
-        # Use simplified regex condition
         if all_artists != 'N/A':
-            # Check if the artist has already appeared in the current week
             if all_artists not in artist_count:
                 artist_count[all_artists] = 1
             else:
                 artist_count[all_artists] += 1
 
-            # Append data to the list for the current week
             all_data.append([title, all_artists, current_date, ""])
 
-    # Update the unique artists count for the current year
     unique_artists_per_year[current_date.year] = len(artist_count)
 
-    # Update the overall artist count
     for artist, count in artist_count.items():
-        if artist not in all_artists_count:
-            all_artists_count[artist] = count
-        else:
-            all_artists_count[artist] += count
+        all_artists_count[artist] = all_artists_count.get(artist, 0) + count
 
-    # Move to the previous week
     current_date -= timedelta(days=7)
 
-    # Check if the loop should break
-    if current_date.year <= 1969:
-        break
-
 # Create the final DataFrame after the loop
-final_dataframe = pd.DataFrame(all_data, columns=columns)
-
-# Update the "Unique Artist" column with the count of unique artists for each week
+final_dataframe = pd.DataFrame(all_data, columns=COLUMNS)
 final_dataframe["Unique Artist"] = final_dataframe["Date"].dt.year
+
+
 
 # Display the final DataFrame without the index
 print(final_dataframe.to_string(index=False))
@@ -170,4 +152,3 @@ plt.ylabel('Number of Appearances')
 plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
 plt.show()
-
