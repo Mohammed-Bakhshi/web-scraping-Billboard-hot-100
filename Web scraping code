@@ -9,18 +9,18 @@ from nltk.corpus import stopwords
 import nltk
 
 
-# Constants
+
 BASE_URL = 'https://www.billboard.com/charts/hot-100/'
 START_DATE = datetime(2024, 1, 1)  # Start date
-END_DATE = datetime(1970, 1, 1)
+END_DATE = datetime(1955, 1, 1)
 COLUMNS = ["Title", "Artist", "Date", "Unique Artist"]
 
-# Initialize data storage
+# making storahe 
 all_data = []
 all_artists_count = {}
 unique_artists_per_year = {}
 
-# Loop through each week starting from the current date until 1955-07-09
+# Loop through each week 
 current_date = START_DATE
 while current_date >= END_DATE:
     formatted_date = current_date.strftime('%Y-%m-%d')
