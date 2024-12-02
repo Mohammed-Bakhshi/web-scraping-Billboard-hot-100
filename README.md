@@ -1,18 +1,27 @@
 # Billboard Hot 100 Analysis
 
-I analyzed the Billboard Hot 100 over decades(1970-2024). The process involved using Python's Pandas library to  put the data into an easy-to-read data frame 
- ## Data Organization
- I used Pandas to create an in-depth database, organizing the Billboard Hot 100 data into an easy-to-read format. 
-## Data Visualization
-Matplotlib was used to generate graph from the data in the pandas data frame from the Billboard data. The following visualizations were created: 
-### 1. Top 30 Most Played Songs 
-A bar graph was generated to highlight the top 30 most played songs, showing us the trend of music 
- 
- ### 2. Yearly Count of Unique Artists 
-A line graph displaying the yearly count of unique artists on the Billboard Hot 100 charts, shows the artist's first appearance in the billboard hot 100. 
-### 3. Evolution of Top Artists
- A line graph showcasing the evolution of the top 10 artists throughout the years, revealing trends in the most popular artists 's popularity over time. 
-### 4. Word Cloud for Song Titles
- A word cloud was generated to visually represent the top 100 most common words in song titles, offering a unique perspective on the language used in popular music.
-  ### 5. Top 30 Artists Overall
-   A bar graph displayed the top 30 artists overall, providing an overview of the most frequently appearing artists on the Billboard Hot 100 charts.
+I analyzed the Billboard Hot 100 over decades (1970–2024), using Python's Pandas library to organize the data into an easy-to-read format and generate insights through visualizations.
+
+## Data Organization  
+The data was structured using Pandas to create an in-depth, readable database of Billboard Hot 100 data.
+
+## Data Visualization  
+Matplotlib was used to create insightful graphs from the Billboard data in the Pandas DataFrame. The following visualizations were generated:
+
+### 1. Top 30 Most Played Songs  
+A bar graph highlighting the top 30 most played songs, showcasing trends in music over time.  
+![Top 30 Most Played Songs](./src/image/Top-30-most-played-songs.png)
+
+### 2. Yearly Count of Unique Artists  
+A line graph displaying the yearly count of unique artists on the Billboard Hot 100, focusing on their first chart appearances.
+
+### 3. Evolution of Top Artists  
+A line graph showing the evolution of the top 10 artists over time, revealing trends in their popularity.
+
+### 4. Word Cloud for Song Titles  
+A word cloud representing the 100 most common words in song titles, providing a unique perspective on the language used in popular music.  
+![Most Common Words in Song Titles](./src/image/Most-common-words-in-song.png)
+
+### 5. Top 30 Artists Overall  
+A bar graph displaying the top 30 artists overall, providing an overview of the most frequently appearing artists on the Billboard Hot 100 charts.  
+![Top 30 Artists Overall](./src/image/Top-30-artist.png)
